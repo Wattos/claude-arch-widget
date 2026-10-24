@@ -38,6 +38,7 @@ def test_taskbar_width_fits_text(widget_root, height, countdown, monkeypatch):
     qml = '''import QtQuick
 Item {
     id: root
+    property bool compactEnabled: false
     property bool apiMode: false
     property bool loading: false
     property bool hasClaudeUsageData: true
@@ -47,6 +48,7 @@ Item {
     property string sessionResetsIn: COUNTDOWN
     property string weeklyResetsIn: COUNTDOWN
     property var theme: ({s: "orange", w: "yellow"})
+    property bool panelTextVisible: panelPercentage.visible
     property real measuredWidth: compact.width
     property string displayedPercentage: panelPercentage.text
     property string displayedReset: panelReset.text
@@ -64,7 +66,7 @@ Item {
         Item { id: compactCanvas; x: Math.round((compact.h - width) / 2); width: compact.iconSize }
         PANEL
     }
-}'''.replace("COUNTDOWN", json.dumps(countdown)).replace("HEIGHT", str(height)).replace("SIZING", sizing).replace("PANEL", panel)
+}'''.replace("COUNTDOWN", json.dumps(countdown)).replace("HEIGHT", str(height)).replace("SIZING", sizing.replace("Plasmoid.configuration.panelCompactMode", "root.compactEnabled")).replace("PANEL", panel)
     engine = QQmlEngine()
     component = QQmlComponent(engine)
     component.setData(qml.encode(), QUrl())
@@ -86,3 +88,32 @@ Item {
     app.processEvents()
     assert obj.property("displayedPercentage") == "…"
     assert obj.property("displayedReset") == ""
+
+    # Rings-only mode occupies one panel-height square and hides all text.
+    obj.setProperty("compactEnabled", True)
+    app.processEvents()
+    assert obj.property("measuredWidth") == height
+    assert not obj.property("panelTextVisible")
+    obj.setProperty("apiMode", True)
+    app.processEvents()
+    assert obj.property("measuredWidth") == height
+    obj.setProperty("apiMode", False)
+    obj.setProperty("loading", False)
+    obj.setProperty("hasClaudeUsageData", True)
+    obj.setProperty("compactEnabled", False)
+    app.processEvents()
+    assert obj.property("panelTextVisible")
+    assert obj.property("measuredWidth") == width_before
+
+
+def test_panel_compact_mode_setting_defaults_off(widget_root):
+    import xml.etree.ElementTree as ET
+
+    schema = ET.parse(widget_root / "contents/config/main.xml")
+    entry = schema.find(".//{*}entry[@name='panelCompactMode']")
+    assert entry is not None
+    assert entry.attrib["type"] == "Bool"
+    assert entry.find("{*}default").text == "false"
+    settings = (widget_root / "contents/ui/configGeneral.qml").read_text()
+    assert "cfg_panelCompactModeDefault: false" in settings
+    assert "cfg_panelCompactMode: panelCompactToggle.checked" in settings
