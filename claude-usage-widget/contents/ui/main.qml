@@ -535,14 +535,14 @@ PlasmoidItem {
 
             Text {
                 width: compact.textW
-                text: root.loading ? "…" : root.errorMsg ? "!" : Math.round(root.sessionPct) + "%"
-                color: root.errorMsg ? "#ff5555" : root.theme.s
+                text: root.loading ? "…" : root.errorMsg ? "!" : Math.round(root.weeklyPct >= 100 ? root.weeklyPct : root.sessionPct) + "%"
+                color: root.errorMsg ? "#ff5555" : (root.weeklyPct >= 100 ? root.theme.w : root.theme.s)
                 font.pixelSize: Math.round(compact.h * 0.32)
                 font.bold: true
             }
             Text {
                 width: compact.textW
-                text: root.loading || root.errorMsg ? "" : root.sessionResetsIn
+                text: root.loading || root.errorMsg ? "" : (root.weeklyPct >= 100 ? root.weeklyResetsIn : root.sessionResetsIn)
                 color: Kirigami.Theme.disabledTextColor
                 font.pixelSize: Math.round(compact.h * 0.22)
             }

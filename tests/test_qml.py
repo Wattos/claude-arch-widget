@@ -55,3 +55,47 @@ def test_preset_colors_bind_to_qml_color_properties(widget_root, theme, rgb, alp
     assert (label.red(), label.green(), label.blue()) == rgb
     # Keep the application alive until the QML objects have been checked.
     assert app is not None
+
+
+@pytest.mark.parametrize("weekly,session,session_reset,loading,error,expected", [
+    (99.9, 25, "2h 10m", False, "", ("25%", "2h 10m", "orange")),
+    (100, 0, "?", False, "", ("100%", "10h 21m", "yellow")),
+    (100, 100, "1h 5m", False, "", ("100%", "10h 21m", "yellow")),
+    (101, 0, "?", False, "", ("101%", "10h 21m", "yellow")),
+    (100, 0, "?", True, "", ("…", "", "yellow")),
+    (100, 0, "?", False, "Network error", ("!", "", "#ff5555")),
+])
+def test_taskbar_prioritizes_exhausted_weekly_limit(
+    widget_root, weekly, session, session_reset, loading, error, expected, monkeypatch
+):
+    import json
+    import re
+
+    pytest.importorskip("PySide6.QtGui")
+    pytest.importorskip("PySide6.QtQml")
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtQml import QJSEngine
+
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    app = QGuiApplication.instance() or QGuiApplication([])
+    source = (widget_root / "contents/ui/main.qml").read_text()
+    panel = source.split("// ── Horizontal panel: claudeai mode text", 1)[1].split(
+        "// ── Horizontal panel: API mode text", 1
+    )[0]
+    texts = re.findall(r"^\s*text: (.+)$", panel, re.MULTILINE)
+    color = re.search(r"^\s*color: (.+)$", panel, re.MULTILINE).group(1)
+    engine = QJSEngine()
+    engine.evaluate("var root = " + json.dumps({
+        "weeklyPct": weekly, "sessionPct": session,
+        "sessionResetsIn": session_reset, "weeklyResetsIn": "10h 21m",
+        "loading": loading, "errorMsg": error,
+        "theme": {"s": "orange", "w": "yellow"},
+    }))
+    assert len(texts) == 2
+    actual = []
+    for expression in [*texts, color]:
+        result = engine.evaluate(expression)
+        assert not result.isError(), result.toString()
+        actual.append(result.toString())
+    assert tuple(actual) == expected
+    assert app is not None
