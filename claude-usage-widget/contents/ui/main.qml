@@ -367,8 +367,14 @@ PlasmoidItem {
         // h = short side of the panel (height when horizontal, width when vertical)
         readonly property real h:        vertical ? parent.width : parent.height
         readonly property real iconSize: Math.round(h * 0.84)
-        readonly property real textW:    Math.round(h * 1.6)
-        readonly property real totalW:   iconSize + textW + Math.round(h * 0.25)
+        // Fit subscription text to its content; keep the API/sidebar sizing unchanged.
+        readonly property real textW: root.apiMode || vertical
+            ? Math.round(h * 1.6)
+            : Math.ceil(Math.max(panelPercentage.implicitWidth, panelReset.implicitWidth))
+        readonly property real totalW: root.apiMode || vertical
+            ? iconSize + textW + Math.round(h * 0.25)
+            : Math.round((h - iconSize) / 2) + iconSize + Math.round(h * 0.15)
+              + textW + Math.round(h * 0.08)
 
         Layout.minimumWidth:   vertical ? parent.width : totalW
         Layout.preferredWidth: vertical ? parent.width : totalW
@@ -534,6 +540,7 @@ PlasmoidItem {
             spacing: 0
 
             Text {
+                id: panelPercentage
                 width: compact.textW
                 text: root.loading ? "…" : root.errorMsg ? "!" : Math.round(root.sessionPct) + "%"
                 color: root.errorMsg ? "#ff5555" : root.theme.s
@@ -541,6 +548,7 @@ PlasmoidItem {
                 font.bold: true
             }
             Text {
+                id: panelReset
                 width: compact.textW
                 text: root.loading || root.errorMsg ? "" : root.sessionResetsIn
                 color: Kirigami.Theme.disabledTextColor
