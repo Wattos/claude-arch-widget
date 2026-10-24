@@ -40,6 +40,7 @@ Item {
     id: root
     property bool apiMode: false
     property bool loading: false
+    property bool hasClaudeUsageData: true
     property string errorMsg: ""
     property real sessionPct: 89
     property real weeklyPct: 22
@@ -47,6 +48,8 @@ Item {
     property string weeklyResetsIn: COUNTDOWN
     property var theme: ({s: "orange", w: "yellow"})
     property real measuredWidth: compact.width
+    property string displayedPercentage: panelPercentage.text
+    property string displayedReset: panelReset.text
     property real textExtent: Math.max(probePercent.implicitWidth, probeReset.implicitWidth)
     property real iconExtent: compactCanvas.x + compactCanvas.width
     Text { id: probePercent; text: "89%"; font.pixelSize: Math.round(HEIGHT * .32); font.bold: true }
@@ -70,3 +73,16 @@ Item {
     app.processEvents()
     right_gap = obj.property("measuredWidth") - obj.property("iconExtent") - round(height * .15) - obj.property("textExtent")
     assert round(height * .08) <= right_gap < round(height * .08) + 1
+
+    # Opening the popup starts a refresh; retain both content and width.
+    width_before = obj.property("measuredWidth")
+    obj.setProperty("loading", True)
+    app.processEvents()
+    assert obj.property("displayedPercentage") == "89%"
+    assert obj.property("displayedReset") == countdown
+    assert obj.property("measuredWidth") == width_before
+    # Before the first successful fetch, placeholders still indicate loading.
+    obj.setProperty("hasClaudeUsageData", False)
+    app.processEvents()
+    assert obj.property("displayedPercentage") == "…"
+    assert obj.property("displayedReset") == ""

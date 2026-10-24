@@ -10,6 +10,7 @@ PlasmoidItem {
     id: root
 
     // ── Claude.ai mode properties ─────────────────────────────────────────────
+    property bool hasClaudeUsageData: false
     property real sessionPct: 0
     property real weeklyPct: 0
     property string sessionResetsIn: "?"
@@ -542,7 +543,7 @@ PlasmoidItem {
             Text {
                 id: panelPercentage
                 width: compact.textW
-                text: root.loading ? "…" : root.errorMsg ? "!" : Math.round(root.sessionPct) + "%"
+                text: root.loading && !root.hasClaudeUsageData ? "…" : root.errorMsg ? "!" : Math.round(root.sessionPct) + "%"
                 color: root.errorMsg ? "#ff5555" : root.theme.s
                 font.pixelSize: Math.round(compact.h * 0.32)
                 font.bold: true
@@ -550,7 +551,7 @@ PlasmoidItem {
             Text {
                 id: panelReset
                 width: compact.textW
-                text: root.loading || root.errorMsg ? "" : root.sessionResetsIn
+                text: (root.loading && !root.hasClaudeUsageData) || root.errorMsg ? "" : root.sessionResetsIn
                 color: Kirigami.Theme.disabledTextColor
                 font.pixelSize: Math.round(compact.h * 0.22)
             }
@@ -1269,6 +1270,7 @@ PlasmoidItem {
                     root.weeklyPct       = j.weekly.utilization
                     root.weeklyResetsIn  = j.weekly.resets_in
                     root.weeklyResetsAt  = j.weekly.resets_at
+                    root.hasClaudeUsageData = true
                     checkNotifications()
                 }
             } catch(e) {
